@@ -54,6 +54,14 @@ Checked line-by-line against `skillbridge-prompt.md`. Verified by `tests/accepta
    would be filtered out of sight the instant it was saved, which reads as a failed save.
 5. **`tests/`, `package.json`, `node_modules/` are development-only** (jsdom harness) and are not
    part of the three-file deliverable.
+6. **The deliverable is no longer three files.** §6 asked for `index.html`, `style.css` and
+   `script.js`. The app is now six HTML pages, one shared stylesheet and seven scripts
+   (`core.js` + one per page). This was a deliberate, user-approved change of scope, not an
+   accident: a single page opening straight into a form read like an admin utility, and the
+   features that followed (My listings, Insights, permalinks) each needed a page of their own.
+   The three original files are still the whole *app* in the sense that mattered — no build step,
+   no dependencies, no server — and `script.js` was split rather than duplicated, so there is still
+   exactly one copy of every behaviour.
 
 ## Additions after the initial audit
 
@@ -87,6 +95,52 @@ One real defect was caught by the new tests:
   allocated before the record is built, so every listing carries it from the first post.
 
 The suite grew from 130 to **172 assertions**.
+
+## The multi-page refactor
+
+Adding pages was not additive work. The original `script.js` made **51 unguarded
+`document.getElementById` calls** at load time and then wired `el.form.addEventListener('submit', …)`,
+so including it on any page without that form threw a `TypeError` before anything rendered. It had to
+be split, not copied:
+
+- **`core.js`** — everything more than one page needs: constants, the shared state singleton, storage
+  and profile access, seeding, escaping, relative dates, the analytics primitives (`computeStats`,
+  `categoryBreakdown`, `unmetDemand`, `tokens`, `findMatches`) and the UI factories (banner, contact
+  gate, card markup, the two-step delete confirm, nav). Exposed as `window.SkillBridge`.
+- **`app.js`** — board behaviour only, and the sole script that touches the form.
+- **`me.js`, `insights.js`, `listing.js`, `page.js`** — one per page, each under 200 lines.
+
+Two constraints shaped the design. Scripts are **classic, not ES modules**, because modules are
+blocked on `file://` and the app must still run from a double-click. And state is shared through
+`localStorage`, which is **origin-scoped**, so every page reads the same board and profile with no
+synchronisation code at all.
+
+Page inventory:
+
+| Page | Job it has to do |
+|---|---|
+| `index.html` | The board. Now opens on live counts and a three-step explanation instead of a bare form, and names the biggest unmet demand with a button that prefills the form to offer it. |
+| `me.html` | The saved profile as a first-class object, every listing this browser posted, and an export scoped to just those. |
+| `insights.html` | Supply vs demand per category, the gaps nobody is filling, and request↔offer pairings. |
+| `listing.html` | One listing at `?id=…` — full description, its own gated contact block, delete-if-mine. |
+| `about.html` | Static prose: the problem, the approach, what it deliberately is not. |
+| `404.html` | Bad addresses. **Self-contained with inline styles and no JS** — Pages serves it at whatever depth was requested, so a relative `href="style.css"` would resolve against that path and break. This is the one accepted exception to the "no inline `<style>`" rule, which the audit applies to the app pages. |
+
+Two honest limits are stated in the UI rather than hidden:
+
+- **Permalinks resolve only in the browser that created them.** With no server there is nowhere to
+  look up an id someone else sent you. `listing.html` therefore has a not-found panel that explains
+  the `localStorage` model and suggests exporting, instead of a bare "404".
+- **Insights describes one browser's board, not the campus.** The page says so in as many words.
+
+`findMatches` was also corrected during this work. It initially required keyword overlap, which
+meant a freshly seeded board produced *zero* pairings — a panel that looks broken on first visit.
+Same-category pairs are now included at a lower score, and the reason for each pairing is printed
+("shares *figma*" / "both in Design & Media") so the matching is inspectable rather than magic.
+
+The suite grew from 172 to **254 assertions**, including **31 checked contrast pairs** and a check
+that every page boots without a console error, that all five app pages carry an identical nav with
+the correct `aria-current`, and that each loads `core.js` plus exactly one page script.
 
 ## Deployment
 

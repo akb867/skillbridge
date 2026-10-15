@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>About — SkillBridge</title>
+<meta name="description" content="What SkillBridge is, the problem it addresses, how it is built, and what it deliberately does not do." />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0-6h18M3 9v0" />
+        </svg>
+      </span>
+      <span class="brand-text">
+        <strong>SkillBridge</strong>
+        <em>Find a peer. Share a skill.</em>
+      </span>
+    </a>
+
+    <nav class="site-nav" aria-label="Main">
+      <a href="index.html">Board</a>
+      <a href="me.html">My listings</a>
+      <a href="insights.html">Insights</a>
+      <a href="about.html">About</a>
+    </nav>
+
+    <p class="live-count" id="liveCount" aria-live="polite">0 listings</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="index.html">Board</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">About</span>
+  </nav>
+
+  <section class="page-head">
+    <h1>About SkillBridge</h1>
+    <p class="page-sub">
+      A lightweight, organised digital bulletin board for peer-to-peer skill exchange on a campus.
+    </p>
+  </section>
+
+  <div class="prose">
+
+    <section class="panel" aria-labelledby="problemHeading">
+      <h2 id="problemHeading" class="panel-title">The problem</h2>
+      <p>
+        A large amount of informal teaching happens on any campus, and almost none of it is organised.
+        Students who need help with something specific &mdash; debugging a Java loop, understanding
+        operating system scheduling, practising public speaking &mdash; have no central place to find
+        someone who can help, and students who <em>could</em> help have no way to say so.
+      </p>
+      <p>
+        What exists instead is scattered: WhatsApp groups, Telegram channels, a physical notice board
+        outside the department office. Those channels get cluttered fast. A genuine request for help
+        with statistics is buried under forty messages about a fest, and there is no way to search,
+        filter, or come back to it later.
+      </p>
+      <p>The result is two problems at once:</p>
+      <ul>
+        <li><strong>Fragmentation</strong> &mdash; offers and requests live in different places, so they never meet.</li>
+        <li><strong>Noise</strong> &mdash; the places they do live in are chronological chat, not a searchable board.</li>
+      </ul>
+    </section>
+
+    <section class="panel" aria-labelledby="solutionHeading">
+      <h2 id="solutionHeading" class="panel-title">The solution</h2>
+      <p>
+        SkillBridge separates <em>offering</em> from <em>looking for</em>, and makes the board
+        searchable rather than scrollable.
+      </p>
+      <ol>
+        <li>
+          <strong>Dual-role listings.</strong> Every post is either an offer to teach or a request to
+          learn, colour-coded green and amber throughout, so the two never get confused.
+        </li>
+        <li>
+          <strong>Live filtering.</strong> A search box filters as you type across skill, description,
+          category and poster name. Type filters, category chips, a &ldquo;Mine&rdquo; toggle and a
+          sort control all combine, with no page reload.
+        </li>
+        <li>
+          <strong>Interactive cards.</strong> Each listing is a card. &ldquo;View Details&rdquo; opens a
+          dialog; &ldquo;Connect&rdquo; opens the same dialog with the contact details already
+          revealed; the card title is a permalink.
+        </li>
+        <li>
+          <strong>Persistence.</strong> Listings are written to <code>localStorage</code> on every add
+          and delete, so the board survives refreshes and browser restarts.
+        </li>
+      </ol>
+      <p>
+        The <a href="insights.html">Insights</a> page goes one step further and reports what the board
+        is actually asking for: supply against demand per category, the biggest gaps, and which offers
+        and requests look like they match.
+      </p>
+    </section>
+
+    <section class="panel" aria-labelledby="buildHeading">
+      <h2 id="buildHeading" class="panel-title">How it is built</h2>
+      <p>
+        Plain HTML, CSS and vanilla JavaScript. No framework, no bundler, no build step, no external
+        dependencies &mdash; the site also works when opened directly from the filesystem.
+      </p>
+      <dl class="about-files">
+        <dt><code>core.js</code></dt>
+        <dd>Shared layer: storage, the saved profile, formatting, card markup, the contact gate, the delete confirmation, and the analytics used by Insights.</dd>
+        <dt><code>app.js</code></dt>
+        <dd>The board page: hero statistics, the posting form and its validation, search, filters, chips, sorting, the details dialog, export and import.</dd>
+        <dt><code>me.js</code>, <code>insights.js</code>, <code>listing.js</code></dt>
+        <dd>Per-page logic for My listings, Insights and the permalink page.</dd>
+        <dt><code>style.css</code></dt>
+        <dd>One stylesheet, themed entirely through CSS custom properties.</dd>
+      </dl>
+      <p>
+        Every page shares <code>localStorage</code> because it is scoped to the origin, so the board,
+        your saved details and the analytics all stay in sync without any server.
+      </p>
+      <p>
+        The project is verified by a headless test harness of 200-odd assertions covering validation,
+        filtering, sorting, deletion, contact masking, export and import, storage edge cases and
+        colour-contrast ratios.
+      </p>
+    </section>
+
+    <section class="panel panel--warn" aria-labelledby="limitsHeading">
+      <h2 id="limitsHeading" class="panel-title">What this is not</h2>
+      <p>Stated plainly, because it matters more than the feature list.</p>
+      <ul>
+        <li>
+          <strong>It is not a shared database.</strong> Data lives in <code>localStorage</code>, which
+          belongs to one browser on one device. Two classmates on two machines see two separate
+          boards. This is the single biggest limitation, and it is a direct consequence of having no
+          backend.
+        </li>
+        <li>
+          <strong>It is not authenticated.</strong> The saved profile stops you retyping your details.
+          It is not a login, it verifies nothing, and it can be edited from devtools in seconds. A
+          login form bolted onto <code>localStorage</code> would only imitate authentication, so this
+          project does not pretend to have one.
+        </li>
+        <li>
+          <strong>Permalinks only resolve locally.</strong> A listing link works in the browser that
+          created the listing. Sent to someone else, it lands on &ldquo;we cannot find that
+          listing&rdquo; &mdash; for the same reason as the first point.
+        </li>
+        <li>
+          <strong>There is no moderation.</strong> No reporting, no verification of a college email
+          address, no way to remove someone else&rsquo;s listing. Any of those needs a server.
+        </li>
+      </ul>
+      <p>
+        The natural next step for all four is the same: replace <code>localStorage</code> with a
+        hosted database and real accounts. The front end would barely change &mdash; the storage layer
+        in <code>core.js</code> is the only part that would need rewriting.
+      </p>
+    </section>
+
+    <section class="panel" aria-labelledby="privacyHeading">
+      <h2 id="privacyHeading" class="panel-title">Privacy and your data</h2>
+      <ul>
+        <li>Nothing leaves your browser. There are no network requests, no analytics, no third-party scripts and no fonts loaded from a CDN.</li>
+        <li>Contact details are masked by default. A poster&rsquo;s email or phone number is not written into the page until someone clicks &ldquo;Reveal contact&rdquo;, and closing the dialog removes it from the DOM again.</li>
+        <li>Everything is exportable and deletable. <strong>Export JSON</strong> downloads the whole board; the &times; on any card deletes that listing after a confirmation; &ldquo;Not you?&rdquo; clears your saved details.</li>
+        <li>
+          To erase the app completely, run this in the browser console:
+          <pre><code>localStorage.removeItem('skillbridge_listings');
+localStorage.removeItem('skillbridge_profile');
+location.reload();</code></pre>
+        </li>
+      </ul>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>
+      SkillBridge &middot; a peer-to-peer skill board for campus. Listings are stored in your browser only.
+      <a href="about.html">About this project</a>
+    </p>
+  </div>
+</footer>
+
+<script src="core.js"></script>
+<script src="page.js"></script>
+</body>
+</html>

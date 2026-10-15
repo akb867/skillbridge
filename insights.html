@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Insights — SkillBridge</title>
+<meta name="description" content="Supply and demand across the SkillBridge board: category gaps and possible peer matches." />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0-6h18M3 9v0" />
+        </svg>
+      </span>
+      <span class="brand-text">
+        <strong>SkillBridge</strong>
+        <em>Find a peer. Share a skill.</em>
+      </span>
+    </a>
+
+    <nav class="site-nav" aria-label="Main">
+      <a href="index.html">Board</a>
+      <a href="me.html">My listings</a>
+      <a href="insights.html">Insights</a>
+      <a href="about.html">About</a>
+    </nav>
+
+    <p class="live-count" id="liveCount" aria-live="polite">0 listings</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="index.html">Board</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">Insights</span>
+  </nav>
+
+  <section class="page-head">
+    <h1>Insights</h1>
+    <p class="page-sub">What this board is asking for, where the gaps are, and who could meet whom.</p>
+  </section>
+
+  <ul class="stat-strip stat-strip--lg" id="statStrip"></ul>
+
+  <section class="panel" aria-labelledby="catHeading">
+    <h2 id="catHeading" class="panel-title">Supply and demand by category</h2>
+    <p class="panel-sub">
+      Offers against requests. A positive gap means more people are asking than volunteering.
+    </p>
+    <div class="table-scroll">
+      <table class="data-table" id="catTable">
+        <caption class="sr-only">Offerings and requests per category</caption>
+        <thead>
+          <tr><th scope="col">Category</th><th scope="col">Offering</th><th scope="col">Looking for</th><th scope="col">Gap</th><th scope="col">Balance</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="table-empty" id="catEmpty" hidden>No listings to analyse yet.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="gapHeading">
+    <h2 id="gapHeading" class="panel-title">Biggest gaps</h2>
+    <p class="panel-sub">The categories where help is wanted and nobody is offering it.</p>
+    <ul class="insight-list" id="gapList"></ul>
+    <p class="table-empty" id="gapEmpty" hidden>Nothing is short of supply right now.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="matchHeading">
+    <h2 id="matchHeading" class="panel-title">Possible matches</h2>
+    <p class="panel-sub">
+      Requests paired with offers by keyword overlap and shared category. This is simple token matching,
+      not semantic search &mdash; it catches the obvious pairs and nothing subtle.
+    </p>
+    <ul class="insight-list" id="matchList"></ul>
+    <p class="table-empty" id="matchMore" hidden></p>
+    <p class="table-empty" id="matchEmpty" hidden>Nothing to pair yet &mdash; post an offer or a request and matches appear here.</p>
+  </section>
+
+  <p class="honest-note">
+    These figures are computed from the listings stored in <strong>this browser only</strong>.
+    SkillBridge has no server, so there is no campus-wide dataset to analyse &mdash; what you see is
+    your own board, plus the sample listings it seeded itself with.
+  </p>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>
+      SkillBridge &middot; a peer-to-peer skill board for campus. Listings are stored in your browser only.
+      <a href="about.html">About this project</a>
+    </p>
+  </div>
+</footer>
+
+<script src="core.js"></script>
+<script src="insights.js"></script>
+</body>
+</html>

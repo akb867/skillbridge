@@ -9,22 +9,39 @@ listing to contact the poster.
 No backend, no build step, no dependencies — plain HTML, CSS and vanilla JavaScript. All listings
 persist in the browser's `localStorage`.
 
+Six pages share one stylesheet and one core script: the **board**, **My listings**, **Insights**,
+**About**, a **permalink** page per listing, and a self-contained **404**.
+
 ## Run it
 
-Double-click `index.html`, or serve the folder:
+Serve the folder — the pages link to each other with relative URLs, so this works from any host
+or straight off the file system:
 
 ```bash
 python3 -m http.server 3000
 # → http://localhost:3000
 ```
 
+Double-clicking `index.html` also works. The scripts are classic (not ES modules), which is
+deliberate: modules are blocked on `file://`.
+
 ## Files
 
 | File | Purpose |
 |---|---|
-| `index.html` | Markup: header, post form, search toolbar, card grid, details modal |
-| `style.css` | Theme (CSS custom properties), responsive 1→4 column grid, AA-compliant contrast |
-| `script.js` | `localStorage` layer, seed data, validation, live search + filters, rendering, modal |
+| `index.html` | **The board.** Hero with live stats, how-it-works, post form, search toolbar, chips, card grid, details modal |
+| `me.html` | **My listings.** Saved profile card, everything this browser posted, export-mine |
+| `insights.html` | **Insights.** Supply-vs-demand table per category, biggest gaps, suggested request↔offer pairings |
+| `listing.html` | **Permalink.** One listing at `?id=…`, full description, gated contact, delete-if-mine |
+| `about.html` | **About.** What the app is, how it was built, what it deliberately does not do |
+| `404.html` | Not-found page. Self-contained (inline styles, no JS) because Pages serves it at an arbitrary depth |
+| `style.css` | One shared theme: CSS custom properties, responsive 1→4 column grid, AA-compliant contrast |
+| `core.js` | Shared layer → `window.SkillBridge`. Storage, profile, seeding, escaping, dates, analytics, and the UI factories every page reuses (banner, contact gate, cards, delete confirm, nav) |
+| `app.js` | Board logic only: hero stats, validation, live search + filters, chips, sorting, modal, export/import |
+| `me.js` `insights.js` `listing.js` `page.js` | One small script per page; `page.js` just boots the shared core for content-only pages |
+
+Pages share state through `localStorage`, which is origin-scoped — so the board, the profile and the
+counts stay in sync across pages with no messaging between them.
 
 Everything else in this repo is hosting configuration (see below) plus documentation.
 
@@ -55,6 +72,15 @@ Everything else in this repo is hosting configuration (see below) plus documenta
   renders a "Reveal contact" button and builds the `mailto:`/`tel:` links only on click, so the
   details are not sitting in the HTML for scrapers. "Connect" counts as explicit intent and unmasks
   immediately. Closing the modal scrubs the DOM again, including the copy button's data attribute.
+- **A board that explains itself** — the landing page opens on live counts (skills offered, skills
+  wanted, people posting, categories in use) rather than straight into a form, and names the biggest
+  unmet demand with a one-click button that prefills the form to offer it.
+- **Insights** — supply vs demand per category with a balance bar, the categories people are asking
+  for that nobody offers, and request↔offer pairings scored on keyword overlap and shared category.
+  It is honest about its own limits: simple token matching, computed from this browser's data only.
+- **Permalinks** — every listing has its own URL (`listing.html?id=…`) that renders the full
+  description and its own gated contact block, so the browser's back button works and a listing can
+  be linked from elsewhere in the site. See the caveat under **Notes**.
 - **Data portability** — Export downloads the whole board as a dated, self-describing JSON file;
   Import merges one back in, skipping duplicates and invalid entries and normalising unknown
   categories to "Other". This is also the workaround for `localStorage` being per-browser: export on
@@ -87,8 +113,10 @@ location.reload();
 
 **Currently deployed on GitHub Pages** at the URL above, from `.github/workflows/pages.yml` — every push
 to `main` redeploys in about a minute. Pages is set to *Source: GitHub Actions*, and the workflow stages
-only the four site files into `_site/`, so `tests/` and `node_modules/` are never published (confirmed:
-`/tests/…`, `/package.json` and `/node_modules/` all return 404 on the live site).
+only the root-level `.html`, `.css` and `.js` files into `_site/`, so `tests/` and `node_modules/` are
+never published (confirmed: `/tests/…`, `/package.json` and `/node_modules/` all return 404 on the live
+site). The staging step then asserts every one of the thirteen site files is present and fails the
+build rather than silently shipping a page that would 404.
 
 The app is 100% static, so any free static host works. Config for four of them is already in the repo.
 
@@ -99,9 +127,9 @@ Drag **`skillbridge-deploy.zip`** onto <https://app.netlify.com/drop>. Live in a
 ### GitHub Pages — best if you want the repo public anyway
 1. Push this folder to a GitHub repository (branch `main`).
 2. **Settings → Pages → Source: GitHub Actions**.
-3. The workflow at `.github/workflows/pages.yml` deploys on every push. It stages `index.html`,
-   `style.css`, `script.js` and `README.md` into `_site/` and publishes that — so `tests/` and
-   `node_modules/` never reach Pages.
+3. The workflow at `.github/workflows/pages.yml` deploys on every push. It stages every root-level
+   `.html`, `.css` and `.js` file plus `README.md` into `_site/`, checks the expected file list is
+   complete, and publishes that — so `tests/` and `node_modules/` never reach Pages.
 
 ### Vercel
 `vercel.json` is included. Either import the repo at <https://vercel.com/new>, or from this folder:
@@ -115,14 +143,20 @@ Create a project pointing at the repo with **build command left empty** and **ou
 For a direct upload instead, drag `skillbridge-deploy.zip` into *Workers & Pages → Create → Upload assets*.
 
 `_headers` is picked up automatically by Netlify and Cloudflare Pages; `netlify.toml` and `vercel.json`
-cover the other two. There is no SPA fallback file because the app has no client-side routes.
+cover the other two. There is no SPA fallback because these are real pages, not client-side routes;
+`404.html` handles bad addresses instead.
 
 ## Development
 
 `tests/acceptance.test.js` is a jsdom harness that checks the build against the specification —
-172 assertions covering seeding, validation, search, type and category filtering, sorting, deletion,
-the modal, contact masking, export/import, the saved profile, the Mine filter, storage edge cases and
-contrast ratios:
+254 assertions covering seeding, validation, search, type and category filtering, sorting,
+deletion, the modal, contact masking, export/import, the saved profile, the Mine filter, storage edge
+cases, every page booting cleanly, the shared nav, the hero stats, My listings, Insights, permalinks,
+the 404 page and 31 contrast ratios.
+
+The harness boots a page by reading its `<script src>` tags and evaluating them in order, exactly as a
+browser would — so a page that references a missing script fails the suite rather than passing
+silently:
 
 ```bash
 npm install jsdom
@@ -135,6 +169,10 @@ It is dev-only and not needed to run or host the app.
 
 - Listings live in each visitor's own browser. There is no shared database, so two people on two
   machines see two separate boards — that is the intended, explicitly frontend-only design.
+- **Permalinks are browser-local for the same reason.** `listing.html?id=…` resolves against
+  `localStorage`, so a link you copy works in your browser and shows an explanatory not-found page in
+  anyone else's. They exist for the back button and for linking around the site, not for sharing
+  across devices — the not-found page says exactly this rather than pretending otherwise.
 - `AUDIT.md` records a line-by-line compliance check against the original build prompt, including the
-  four violations it caught and the five intentional deviations.
+  four violations it caught and the six intentional deviations.
 - `skillbridge-prompt.md` is the prompt that generated this app.

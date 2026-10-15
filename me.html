@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>My listings — SkillBridge</title>
+<meta name="description" content="Every SkillBridge listing posted from this browser, plus your saved details." />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0-6h18M3 9v0" />
+        </svg>
+      </span>
+      <span class="brand-text">
+        <strong>SkillBridge</strong>
+        <em>Find a peer. Share a skill.</em>
+      </span>
+    </a>
+
+    <nav class="site-nav" aria-label="Main">
+      <a href="index.html">Board</a>
+      <a href="me.html">My listings</a>
+      <a href="insights.html">Insights</a>
+      <a href="about.html">About</a>
+    </nav>
+
+    <p class="live-count" id="liveCount" aria-live="polite">0 listings</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="index.html">Board</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">My listings</span>
+  </nav>
+
+  <div class="banner" id="banner" role="status" hidden>
+    <span id="bannerText"></span>
+    <button type="button" class="banner-close" id="bannerClose" aria-label="Dismiss message">&times;</button>
+  </div>
+
+  <section class="page-head">
+    <h1>My listings</h1>
+    <p class="page-sub">Everything posted from this browser, and the details you saved.</p>
+  </section>
+
+  <!-- Shown until a profile exists -->
+  <div class="empty" id="noProfile">
+    <h2 class="empty-title">You have not posted yet</h2>
+    <p class="empty-sub">
+      Post your first skill and your details are saved here, so you never have to retype them.
+    </p>
+    <a class="btn btn-primary" href="index.html">Go to the board</a>
+  </div>
+
+  <div id="profileSection" hidden>
+    <section class="panel me-profile" aria-labelledby="meName">
+      <span class="profile-avatar profile-avatar--lg" id="meAvatar" aria-hidden="true"></span>
+      <div class="me-profile-text">
+        <h2 id="meName" class="me-name"></h2>
+        <p class="me-contact" id="meContact"></p>
+        <p class="me-meta" id="meMeta"></p>
+      </div>
+      <div class="me-profile-actions">
+        <a class="btn btn-ghost btn-sm" href="index.html?edit=profile">Edit details</a>
+        <button type="button" class="btn btn-ghost btn-sm" id="clearProfile">Not you?</button>
+      </div>
+    </section>
+
+    <div class="results-bar">
+      <p class="results-meta" id="meCount" aria-live="polite"></p>
+      <div class="results-tools">
+        <div class="filter-group filter-group--sm" role="group" aria-label="Filter my listings">
+          <button type="button" class="filter-btn is-active" data-mine="all" aria-pressed="true">All</button>
+          <button type="button" class="filter-btn" data-mine="offering" aria-pressed="false">Offering</button>
+          <button type="button" class="filter-btn" data-mine="lookingfor" aria-pressed="false">Looking For</button>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" id="exportMine">Export my listings</button>
+      </div>
+    </div>
+
+    <section class="grid" id="myGrid" aria-label="My listings"></section>
+
+    <div class="empty" id="noneMine" hidden>
+      <h2 class="empty-title">Nothing here yet</h2>
+      <p class="empty-sub" id="noneMineWhy">
+        Your details are saved, but you have not posted a listing with them.
+      </p>
+      <a class="btn btn-primary" href="index.html">Post a skill</a>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>
+      SkillBridge &middot; a peer-to-peer skill board for campus. Listings are stored in your browser only.
+      <a href="about.html">About this project</a>
+    </p>
+  </div>
+</footer>
+
+<script src="core.js"></script>
+<script src="me.js"></script>
+</body>
+</html>

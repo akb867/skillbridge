@@ -18,3 +18,6 @@ npm-debug.log*
 
 # Credentials — never commit
 .secrets/
+
+# Local mirror of what the Pages workflow stages
+_site/

@@ -31,7 +31,16 @@ jobs:
       - name: Stage site files
         run: |
           mkdir -p _site
-          cp index.html style.css script.js README.md _site/
+          # Every root-level .html/.css/.js IS the site; tests/ and node_modules/
+          # live in subdirectories, so they cannot be swept in by these globs.
+          cp ./*.html ./*.css ./*.js README.md _site/
+          echo "Staged:"
+          ls -1 _site
+          # Fail the build rather than silently shipping a broken site
+          for f in index.html me.html insights.html listing.html about.html 404.html \
+                   style.css core.js app.js me.js insights.js listing.js page.js; do
+            test -f "_site/$f" || { echo "MISSING from _site: $f"; exit 1; }
+          done
 
       - uses: actions/upload-pages-artifact@v3
         with:

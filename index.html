@@ -9,10 +9,10 @@
 </head>
 <body>
 
-<!-- ══════════════ HEADER ══════════════ -->
+<!-- ══════════════ HEADER (shared across every page) ══════════════ -->
 <header class="site-header">
   <div class="wrap header-inner">
-    <div class="brand">
+    <a class="brand" href="index.html">
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0-6h18M3 9v0" />
@@ -22,12 +22,55 @@
         <strong>SkillBridge</strong>
         <em>Find a peer. Share a skill.</em>
       </span>
-    </div>
+    </a>
+
+    <nav class="site-nav" aria-label="Main">
+      <a href="index.html">Board</a>
+      <a href="me.html">My listings</a>
+      <a href="insights.html">Insights</a>
+      <a href="about.html">About</a>
+    </nav>
+
     <p class="live-count" id="liveCount" aria-live="polite">0 listings</p>
   </div>
 </header>
 
 <main class="wrap">
+
+  <!-- ══════════════ HERO + LIVE STATS ══════════════ -->
+  <section class="hero">
+    <h1>Find a peer. Share a skill.</h1>
+    <p class="hero-sub">
+      A bulletin board for campus. Post what you can teach or what you need to learn &mdash;
+      instead of losing it in a group chat under four hundred other messages.
+    </p>
+
+    <ul class="stat-strip" id="statStrip"></ul>
+
+    <p class="demand-hint" id="demandHint" role="status" hidden></p>
+  </section>
+
+  <!-- ══════════════ HOW IT WORKS ══════════════ -->
+  <section class="how" aria-labelledby="howHeading">
+    <h2 id="howHeading" class="sr-only">How SkillBridge works</h2>
+    <ol class="how-steps">
+      <li>
+        <span class="how-num" aria-hidden="true">1</span>
+        <strong>Post</strong>
+        Offer a skill you know, or ask for one you need. About twenty seconds.
+      </li>
+      <li>
+        <span class="how-num" aria-hidden="true">2</span>
+        <strong>Get found</strong>
+        Others filter the board live by keyword, category, and offer or request.
+      </li>
+      <li>
+        <span class="how-num" aria-hidden="true">3</span>
+        <strong>Connect</strong>
+        Open a listing and reveal the poster&rsquo;s email or phone. That is the handshake.
+      </li>
+    </ol>
+  </section>
 
   <!-- ══════════════ POST A SKILL ══════════════ -->
   <section class="panel form-panel" aria-labelledby="formHeading">
@@ -162,7 +205,7 @@
     <button type="button" class="mine-btn" id="mineBtn" aria-pressed="false" hidden>Mine</button>
   </section>
 
-  <!-- Category chips — built by JS from the categories actually present -->
+  <!-- Category chips — built by app.js from the categories actually present -->
   <div class="chip-row" id="chipRow" role="group" aria-label="Filter by category"></div>
 
   <!-- Results count + sort + data portability -->
@@ -200,7 +243,10 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <p>SkillBridge &middot; a peer-to-peer skill board for campus. Listings are stored in your browser only.</p>
+    <p>
+      SkillBridge &middot; a peer-to-peer skill board for campus. Listings are stored in your browser only.
+      <a href="about.html">About this project</a>
+    </p>
   </div>
 </footer>
 
@@ -238,10 +284,14 @@
       </div>
     </div>
 
-    <button type="button" class="btn btn-primary modal-done" id="modalDone">Done</button>
+    <div class="modal-foot">
+      <a class="btn btn-ghost btn-sm" id="modalPermalink" href="#">Open permalink</a>
+      <button type="button" class="btn btn-primary btn-sm" id="modalDone">Done</button>
+    </div>
   </div>
 </dialog>
 
-<script src="script.js"></script>
+<script src="core.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
