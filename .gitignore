@@ -1,0 +1,17 @@
+# Dev-only harness (jsdom). Not part of the three-file deliverable.
+node_modules/
+package.json
+package-lock.json
+tests/
+
+# Tooling caches
+.npm/
+.cache/
+.local/
+
+# Built deploy bundle
+skillbridge-deploy.zip
+
+# OS / editor cruft
+.DS_Store
+npm-debug.log*

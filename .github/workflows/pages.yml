@@ -1,0 +1,41 @@
+name: Deploy SkillBridge to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      # Stage ONLY the site files. upload-pages-artifact does not honour .gitignore,
+      # so uploading the repo root would ship tests/ and a 27 MB node_modules/ —
+      # and fail outright if the checkout ever exceeds the 1 GB Pages limit.
+      - name: Stage site files
+        run: |
+          mkdir -p _site
+          cp index.html style.css script.js README.md _site/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
