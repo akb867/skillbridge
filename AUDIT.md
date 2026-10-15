@@ -54,3 +54,16 @@ Checked line-by-line against `skillbridge-prompt.md`. Verified by `tests/accepta
    would be filtered out of sight the instant it was saved, which reads as a failed save.
 5. **`tests/`, `package.json`, `node_modules/` are development-only** (jsdom harness) and are not
    part of the three-file deliverable.
+
+## Deployment
+
+Pushed to a public repository and published on GitHub Pages.
+
+- Repository: <https://github.com/akb867/skillbridge>
+- Live site: <https://akb867.github.io/skillbridge/>
+- Workflow: `Deploy SkillBridge to GitHub Pages` — completed `success`; Pages source set to
+  *GitHub Actions* via the API.
+- Post-deploy verification: `/`, `/style.css` and `/script.js` all return HTTP 200 with correct
+  content types, and the three served files are **byte-identical** to the local build.
+  `/tests/acceptance.test.js`, `/package.json`, `/node_modules/`, `/AUDIT.md` and
+  `/skillbridge-prompt.md` all return 404 — only the site files are published.

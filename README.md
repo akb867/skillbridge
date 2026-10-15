@@ -1,5 +1,7 @@
 # SkillBridge
 
+**Live:** <https://akb867.github.io/skillbridge/>
+
 A frontend-only, peer-to-peer **skill exchange board** for a college campus. Post what you can
 teach (**Offering**) or what you want to learn (**Looking For**), then search, filter and open a
 listing to contact the poster.
@@ -50,6 +52,11 @@ localStorage.removeItem('skillbridge_listings'); location.reload();
 ```
 
 ## Hosting
+
+**Currently deployed on GitHub Pages** at the URL above, from `.github/workflows/pages.yml` — every push
+to `main` redeploys in about a minute. Pages is set to *Source: GitHub Actions*, and the workflow stages
+only the four site files into `_site/`, so `tests/` and `node_modules/` are never published (confirmed:
+`/tests/…`, `/package.json` and `/node_modules/` all return 404 on the live site).
 
 The app is 100% static, so any free static host works. Config for four of them is already in the repo.
 
