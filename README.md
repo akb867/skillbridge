@@ -121,8 +121,14 @@ build rather than silently shipping a page that would 404.
 The app is 100% static, so any free static host works. Config for four of them is already in the repo.
 
 ### Netlify Drop — fastest, no account setup first
-Drag **`skillbridge-deploy.zip`** onto <https://app.netlify.com/drop>. Live in about ten seconds on a
+Build the bundle, then drag it onto <https://app.netlify.com/drop>. Live in about ten seconds on a
 `*.netlify.app` URL.
+
+```bash
+zip -r skillbridge-deploy.zip ./*.html ./*.css ./*.js README.md
+```
+
+The zip is gitignored, so a fresh clone builds its own rather than shipping a stale one.
 
 ### GitHub Pages — best if you want the repo public anyway
 1. Push this folder to a GitHub repository (branch `main`).
@@ -140,7 +146,8 @@ npx vercel --prod
 
 ### Cloudflare Pages
 Create a project pointing at the repo with **build command left empty** and **output directory `.`**.
-For a direct upload instead, drag `skillbridge-deploy.zip` into *Workers & Pages → Create → Upload assets*.
+For a direct upload instead, build the zip as shown under Netlify Drop and upload it at
+*Workers & Pages → Create → Upload assets*.
 
 `_headers` is picked up automatically by Netlify and Cloudflare Pages; `netlify.toml` and `vercel.json`
 cover the other two. There is no SPA fallback because these are real pages, not client-side routes;

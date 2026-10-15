@@ -150,7 +150,19 @@ Pushed to a public repository and published on GitHub Pages.
 - Live site: <https://akb867.github.io/skillbridge/>
 - Workflow: `Deploy SkillBridge to GitHub Pages` — completed `success`; Pages source set to
   *GitHub Actions* via the API.
-- Post-deploy verification: `/`, `/style.css` and `/script.js` all return HTTP 200 with correct
-  content types, and the three served files are **byte-identical** to the local build.
-  `/tests/acceptance.test.js`, `/package.json`, `/node_modules/`, `/AUDIT.md` and
-  `/skillbridge-prompt.md` all return 404 — only the site files are published.
+- Post-deploy verification at `4c5e026`: all **14 published files** (6 pages, 7 scripts,
+  `style.css`, `README.md`) return HTTP 200 and are **byte-identical** to the local build by
+  SHA-256. `/script.js` — the deleted monolith — returns 404, confirming the old file is not
+  lingering on the CDN. `/tests/acceptance.test.js`, `/package.json`, `/node_modules/`, `/AUDIT.md`,
+  `/skillbridge-prompt.md`, `/.git/config` and `/.secrets/gh_token` all return 404.
+- A request for an unknown path returns the **custom** `404.html` (verified by body, not just status:
+  it serves "That page is not on the board"), and that page's inline styling resolves correctly at an
+  arbitrary depth.
+- The live board's HTML carries the new `class="hero"`, `id="statStrip"`, `how-steps` markup and
+  links to `me.html`, `insights.html` and `about.html`.
+
+Deployment is authorised through GitHub's OAuth **device flow**, run from the sandbox. Two operational
+notes, both learned the hard way: the sandbox can restart between turns, which kills the polling
+process and orphaned one approved code before it could be exchanged — the device code is now written
+to disk the moment it is issued. And `.git/config` does not survive a turn boundary, so the identity
+and the `origin` remote must be re-set before every push. The token is deleted immediately after use.
