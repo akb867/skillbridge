@@ -16,6 +16,7 @@
 
 /* ---------- 1. Constants & state ---------- */
 const STORAGE_KEY = 'skillbridge_listings';
+const PROFILE_KEY = 'skillbridge_profile';
 const SEARCH_DEBOUNCE_MS = 150;
 const CONFIRM_TIMEOUT_MS = 6000;
 const COPY_NOTE_MS = 2000;
@@ -29,7 +30,10 @@ const state = {
   pendingDelete: null, // id of the card awaiting delete confirmation
   lastTrigger: null,   // element to restore focus to after modal closes
   modalItem: null,     // listing currently shown in the modal
-  contactRevealed: false // whether the modal's contact details are unmasked
+  contactRevealed: false, // whether the modal's contact details are unmasked
+  profile: null,       // saved identity { id, name, email, phone, savedAt }
+  editingProfile: false, // true while the identity fields are expanded for editing
+  onlyMine: false      // "Mine" toggle
 };
 
 const TYPE_LABEL = { offering: 'Offering', lookingfor: 'Looking For' };
@@ -83,7 +87,16 @@ const el = {
   revealContact:document.getElementById('revealContact'),
   hideContact:  document.getElementById('hideContact'),
   contactActions:document.getElementById('contactActions'),
-  contactNote:  document.getElementById('contactNote')
+  contactNote:  document.getElementById('contactNote'),
+  profileBar:   document.getElementById('profileBar'),
+  profileAvatar:document.getElementById('profileAvatar'),
+  profileName:  document.getElementById('profileName'),
+  profileContact:document.getElementById('profileContact'),
+  editProfile:  document.getElementById('editProfile'),
+  clearProfile: document.getElementById('clearProfile'),
+  mineBtn:      document.getElementById('mineBtn'),
+  fieldName:    document.getElementById('fieldName'),
+  fieldContact: document.getElementById('fieldContact')
 };
 
 /* ---------- 2. Storage layer ---------- */
@@ -134,6 +147,102 @@ function isValidListing(item) {
 function newId() {
   if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
   return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9);
+}
+
+/* ---------- 2b. Saved profile ---------- */
+/* A convenience, not authentication: this only stops you retyping your details.
+   Anyone with devtools can edit it, and it is scoped to this browser. */
+function loadProfile() {
+  let raw;
+  try {
+    raw = localStorage.getItem(PROFILE_KEY);
+  } catch (err) {
+    return null;
+  }
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') throw new Error('not an object');
+    const name = typeof parsed.name === 'string' ? parsed.name.trim() : '';
+    if (!name) throw new Error('no name');
+    return {
+      id: typeof parsed.id === 'string' && parsed.id ? parsed.id : newId(),
+      name,
+      email: typeof parsed.email === 'string' ? parsed.email.trim() : '',
+      phone: typeof parsed.phone === 'string' ? parsed.phone.trim() : '',
+      savedAt: Number.isFinite(Number(parsed.savedAt)) ? Number(parsed.savedAt) : Date.now()
+    };
+  } catch (err) {
+    console.warn('SkillBridge: saved profile was unreadable, ignoring it.', err);
+    try { localStorage.removeItem(PROFILE_KEY); } catch (_) { /* ignore */ }
+    return null;
+  }
+}
+
+function saveProfile(profile) {
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  } catch (err) {
+    console.warn('SkillBridge: could not save your profile.', err);
+  }
+}
+
+function dropProfile() {
+  try { localStorage.removeItem(PROFILE_KEY); } catch (_) { /* ignore */ }
+}
+
+function initials(name) {
+  return String(name).trim().split(/\s+/).slice(0, 2)
+    .map(part => part.charAt(0).toUpperCase()).join('') || '?';
+}
+
+/* The identity fields are collapsed whenever a profile is saved and not being edited */
+function isProfiled() {
+  return Boolean(state.profile) && !state.editingProfile;
+}
+
+/* Listings posted since the profile existed carry its id; older ones fall back to
+   matching on name plus whichever contact detail is present. */
+function isMine(item) {
+  const p = state.profile;
+  if (!p || !item) return false;
+  if (item.ownerId) return item.ownerId === p.id;
+
+  const sameName = String(item.name || '').trim().toLowerCase() === p.name.trim().toLowerCase();
+  if (!sameName) return false;
+  if (p.email && item.email) return item.email.trim().toLowerCase() === p.email.trim().toLowerCase();
+  if (p.phone && item.phone) return item.phone.replace(/\D/g, '') === p.phone.replace(/\D/g, '');
+  return false;
+}
+
+function applyProfileUI() {
+  const active = isProfiled();
+  el.profileBar.hidden = !active;
+  el.fieldName.hidden = active;
+  el.fieldContact.hidden = active;
+  el.form.classList.toggle('is-profiled', active);
+
+  if (active) {
+    const p = state.profile;
+    el.profileName.textContent = p.name;
+    el.profileContact.textContent = p.email || p.phone || '';
+    el.profileAvatar.textContent = initials(p.name);
+  } else {
+    el.profileName.textContent = '';
+    el.profileContact.textContent = '';
+    el.profileAvatar.textContent = '';
+  }
+
+  el.mineBtn.hidden = !state.profile;
+  syncMineButton();
+}
+
+function syncMineButton() {
+  const count = state.profile ? state.listings.filter(isMine).length : 0;
+  el.mineBtn.textContent = 'Mine' + (count ? ' (' + count + ')' : '');
+  el.mineBtn.classList.toggle('is-active', state.onlyMine);
+  el.mineBtn.setAttribute('aria-pressed', String(state.onlyMine));
 }
 
 /* ---------- 3. Seed data ---------- */
@@ -238,6 +347,7 @@ function visibleListings() {
   const matched = state.listings
     .filter(item => state.filter === 'all' || item.type === state.filter)
     .filter(item => state.category === 'all' || item.category === state.category)
+    .filter(item => !state.onlyMine || isMine(item))
     .filter(item => {
       if (!terms.length) return true;
       const haystack = [item.skill, item.description, item.category, item.name]
@@ -278,7 +388,8 @@ function render(newIdToHighlight) {
   el.grid.hidden = shown.length === 0;
 
   /* Empty state */
-  const isFiltering = Boolean(state.query) || state.filter !== 'all' || state.category !== 'all';
+  const isFiltering = Boolean(state.query) || state.filter !== 'all' ||
+    state.category !== 'all' || state.onlyMine;
   el.empty.hidden = shown.length !== 0;
 
   if (shown.length === 0) {
@@ -286,6 +397,10 @@ function render(newIdToHighlight) {
       el.emptyTitle.textContent = 'No listings yet';
       el.emptySub.textContent = 'Be the first to post a skill — the board above takes 20 seconds.';
       el.clearFilters.hidden = true;
+    } else if (state.onlyMine && !state.query && state.filter === 'all' && state.category === 'all') {
+      el.emptyTitle.textContent = 'You have not posted anything yet';
+      el.emptySub.textContent = 'Listings you post from this browser will collect here.';
+      el.clearFilters.hidden = false;
     } else if (isFiltering) {
       el.emptyTitle.textContent = 'Nothing matches your filters';
       const scope = scopeDescription();
@@ -394,17 +509,26 @@ function errEl(id) { return document.getElementById(id); }
 
 function validateForm() {
   const errors = [];
-  const name = el.name.value.trim();
+  const profiled = isProfiled();
+  const saved = state.profile;
+
+  /* When the identity fields are collapsed the profile is the source of truth,
+     so they are neither read nor validated. */
+  const name = profiled ? saved.name : el.name.value.trim();
+  const email = profiled ? saved.email : el.email.value.trim();
+  const phone = profiled ? saved.phone : el.phone.value.trim();
+
   const skill = el.skill.value.trim();
   const category = el.category.value;
   const description = el.description.value.trim();
-  const email = el.email.value.trim();
-  const phone = el.phone.value.trim();
   const type = (el.form.querySelector('input[name="type"]:checked') || {}).value;
 
-  setError(el.name, errEl('err-fName'),
-    name ? '' : 'Please enter your name.');
-  if (!name) errors.push(el.name);
+  if (!profiled) {
+    setError(el.name, errEl('err-fName'), name ? '' : 'Please enter your name.');
+    if (!name) errors.push(el.name);
+  } else {
+    setError(el.name, errEl('err-fName'), '');
+  }
 
   setError(el.skill, errEl('err-fSkill'),
     skill ? '' : 'Which skill is this about?');
@@ -423,7 +547,9 @@ function validateForm() {
 
   /* Contact: exactly one of email / phone, and it must look valid */
   let contactError = '';
-  if (!email && !phone) {
+  if (profiled) {
+    contactError = '';                 // already validated when the profile was saved
+  } else if (!email && !phone) {
     contactError = 'Add an email or a phone number so people can reach you.';
   } else if (email && phone) {
     contactError = 'Use either email or phone — not both.';
@@ -456,15 +582,20 @@ el.form.addEventListener('submit', event => {
     return;
   }
 
+  const profiled = isProfiled();
+  /* Allocate the profile id up front: on the very first post the profile itself is
+     only created a few lines below, but this listing must still belong to it. */
+  const ownerId = state.profile ? state.profile.id : newId();
   const record = {
     id: newId(),
-    name: el.name.value.trim(),
+    name: profiled ? state.profile.name : el.name.value.trim(),
     type: el.form.querySelector('input[name="type"]:checked').value,
     skill: el.skill.value.trim(),
     category: el.category.value,
     description: el.description.value.trim(),
-    email: el.email.value.trim(),
-    phone: el.phone.value.trim(),
+    email: profiled ? state.profile.email : el.email.value.trim(),
+    phone: profiled ? state.profile.phone : el.phone.value.trim(),
+    ownerId,
     createdAt: Date.now()
   };
 
@@ -489,8 +620,30 @@ el.form.addEventListener('submit', event => {
   el.form.reset();
   updateCounter();
   clearAllErrors();
+
+  /* Remember the identity: first post creates it, an edit updates it */
+  let bannerNote = '';
+  if (!state.profile) {
+    state.profile = {
+      id: ownerId, name: record.name, email: record.email, phone: record.phone,
+      savedAt: Date.now()
+    };
+    saveProfile(state.profile);
+    state.editingProfile = false;
+    state.onlyMine = false;
+    bannerNote = ' We\u2019ll remember your details, so next time it\u2019s just the skill.';
+  } else if (state.editingProfile) {
+    state.profile = Object.assign({}, state.profile, {
+      name: record.name, email: record.email, phone: record.phone, savedAt: Date.now()
+    });
+    saveProfile(state.profile);
+    state.editingProfile = false;
+    bannerNote = ' Your saved details were updated.';
+  }
+  applyProfileUI();
+
   render(record.id);
-  showBanner('Listing posted \u2713 — it is saved in this browser.', 'success');
+  showBanner('Listing posted \u2713 — it is saved in this browser.' + bannerNote, 'success');
 });
 
 el.resetForm.addEventListener('click', () => {
@@ -569,10 +722,47 @@ el.clearFilters.addEventListener('click', () => {
   state.query = '';
   state.filter = 'all';
   state.category = 'all';
+  state.onlyMine = false;
   el.search.value = '';
   syncFilterButtons();
+  syncMineButton();
   render();
   el.search.focus();
+});
+
+/* Expand the collapsed identity fields for editing */
+el.editProfile.addEventListener('click', () => {
+  if (!state.profile) return;
+  state.editingProfile = true;
+  el.name.value = state.profile.name;
+  el.email.value = state.profile.email;
+  el.phone.value = state.profile.phone;
+  applyProfileUI();
+  hideBanner();
+  el.name.focus();
+});
+
+/* Shared lab machine: forget who I am */
+el.clearProfile.addEventListener('click', () => {
+  dropProfile();
+  state.profile = null;
+  state.editingProfile = false;
+  state.onlyMine = false;
+  el.name.value = '';
+  el.email.value = '';
+  el.phone.value = '';
+  clearAllErrors();
+  applyProfileUI();
+  render();
+  showBanner('Your saved details were cleared from this browser.', 'success');
+  el.name.focus();
+});
+
+el.mineBtn.addEventListener('click', () => {
+  if (!state.profile) return;
+  state.onlyMine = !state.onlyMine;
+  syncMineButton();
+  render();
 });
 
 el.bannerClose.addEventListener('click', hideBanner);
@@ -937,9 +1127,11 @@ document.addEventListener('keydown', event => {
 /* ---------- 10. Init ---------- */
 (function init() {
   state.listings = loadListings();
+  state.profile = loadProfile();
   updateCounter();
   syncFilterButtons();
   el.sortSelect.value = state.sort;
   hideContactDetails();
+  applyProfileUI();
   render();
 })();

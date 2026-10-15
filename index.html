@@ -39,11 +39,25 @@
       <button type="button" class="banner-close" id="bannerClose" aria-label="Dismiss message">&times;</button>
     </div>
 
+    <!-- Saved identity. Not authentication — it only stops you retyping your details. -->
+    <div class="profile-bar" id="profileBar" hidden>
+      <span class="profile-avatar" id="profileAvatar" aria-hidden="true"></span>
+      <span class="profile-text">
+        <span class="profile-label">Posting as</span>
+        <strong id="profileName"></strong>
+        <span class="profile-contact" id="profileContact"></span>
+      </span>
+      <span class="profile-actions">
+        <button type="button" class="btn btn-ghost btn-sm" id="editProfile">Edit</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="clearProfile">Not you?</button>
+      </span>
+    </div>
+
     <form id="skillForm" novalidate>
 
       <div class="grid-2">
         <!-- Name -->
-        <div class="field">
+        <div class="field" id="fieldName">
           <label for="fName">Your name</label>
           <input type="text" id="fName" name="name" maxlength="60" autocomplete="name"
                  placeholder="e.g. Ananya Rao" aria-describedby="err-fName" />
@@ -97,7 +111,7 @@
         </div>
 
         <!-- Contact: exactly one of email / phone -->
-        <div class="field">
+        <div class="field" id="fieldContact">
           <label for="fEmail">Contact <span class="label-hint">(email or phone)</span></label>
           <div class="contact-row">
             <input type="email" id="fEmail" name="email" autocomplete="email"
@@ -144,6 +158,8 @@
       <button type="button" class="filter-btn filter-btn--offering" data-filter="offering" aria-pressed="false">Offering</button>
       <button type="button" class="filter-btn filter-btn--lookingfor" data-filter="lookingfor" aria-pressed="false">Looking For</button>
     </div>
+
+    <button type="button" class="mine-btn" id="mineBtn" aria-pressed="false" hidden>Mine</button>
   </section>
 
   <!-- Category chips — built by JS from the categories actually present -->

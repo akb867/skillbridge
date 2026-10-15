@@ -365,6 +365,81 @@ textarea[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(192, 54, 44, .1
   transform: translate(-50%, -50%);
 }
 
+/* ---------- 5b. Saved profile bar + "Mine" toggle ---------- */
+.profile-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-4);
+  background: var(--primary-soft);
+  border: 1px solid #c9d6fb;
+  border-radius: var(--r-md);
+}
+
+.profile-avatar {
+  flex: 0 0 auto;
+  width: 40px; height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: .85rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.profile-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.profile-label {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--primary-dark);
+}
+.profile-text strong {
+  font-size: .95rem;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.profile-contact {
+  font-size: .82rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.profile-actions { display: flex; gap: var(--sp-2); flex: 0 0 auto; }
+
+/* A distinct neutral fill: "Mine" is a different dimension from the type filters */
+.mine-btn {
+  min-height: 44px;
+  padding: 6px 18px;
+  font-size: .86rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.mine-btn:hover { color: var(--text); border-color: #a9b5c8; background: var(--surface-alt); }
+.mine-btn.is-active {
+  background: var(--text);
+  border-color: var(--text);
+  color: #ffffff;
+}
+
+/* With the identity fields collapsed, the fields beside them go full width */
+form.is-profiled .grid-2 { grid-template-columns: 1fr; }
+
 /* ---------- 6. Banner ---------- */
 .banner {
   display: flex;
@@ -888,6 +963,9 @@ dialog#detailModal.is-open-fallback::before {
   .form-panel { margin-top: var(--sp-4); }
   .toolbar { margin-top: var(--sp-5); }
   .filter-group { width: 100%; justify-content: space-between; }
+  .profile-bar { flex-wrap: wrap; }
+  .profile-actions { width: 100%; justify-content: flex-end; }
+  .mine-btn { width: 100%; }
   .results-bar { flex-direction: column; align-items: stretch; }
   .results-tools { justify-content: space-between; }
   .sort-select { flex: 1; }

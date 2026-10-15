@@ -40,8 +40,15 @@ Everything else in this repo is hosting configuration (see below) plus documenta
 - **Sorting** — newest, oldest, skill A–Z or category A–Z, preserved across searches.
 - **Interactive cards** — View Details opens a modal with the full description; Connect opens the
   same modal focused on the poster's `mailto:` / `tel:` link, with a copy-to-clipboard button.
+- **Saved profile** — enter your name and contact once, on your first post, and the form collapses
+  from six fields to four (type, skill, category, description). A bar shows `Posting as …` with an
+  **Edit** button and a **Not you?** button for shared machines.
+- **My listings** — a `Mine` toggle appears once your details are saved, filtering the board to what
+  this browser posted. It matches on a stored profile id rather than the display name, so renaming
+  yourself does not orphan your older listings.
 - **Persistence** — every add and delete writes to `localStorage`, so listings survive refreshes and
-  browser restarts. Corrupt or blocked storage degrades to an empty board instead of crashing.
+  browser restarts. Corrupt or blocked storage degrades to an empty board instead of crashing. The
+  saved profile is stored under a separate key and is ignored, not fatal, if it is corrupt.
 - **Validation** — inline field errors (never `alert()`), a live character counter, and an
   email-*or*-phone rule so every listing is contactable.
 - **Masked contact details** — a poster's email and phone are *not* in the page source. The modal
@@ -53,13 +60,27 @@ Everything else in this repo is hosting configuration (see below) plus documenta
   categories to "Other". This is also the workaround for `localStorage` being per-browser: export on
   one machine, import on another.
 
+## This is not authentication
+
+The saved profile is a **convenience, not a login**. It is stored in plain `localStorage` under
+`skillbridge_profile`, is scoped to one browser, and can be edited or removed from devtools in
+seconds. It answers "stop making me retype my details" — it does not answer "who are you".
+
+Real authentication needs a server to verify credentials against, and this app deliberately has none.
+Adding a login form on top of `localStorage` would only simulate a login, so the project does not
+pretend to have one. If identity ever needs to be real, the path is a backend such as Supabase, which
+would also replace `localStorage` with a shared database so different people actually see the same
+board.
+
 ## Reset the demo data
 
 The board seeds itself with sample listings on first visit only. To start clean, run this in the
 browser console:
 
 ```js
-localStorage.removeItem('skillbridge_listings'); location.reload();
+localStorage.removeItem('skillbridge_listings');
+localStorage.removeItem('skillbridge_profile');
+location.reload();
 ```
 
 ## Hosting
@@ -99,8 +120,9 @@ cover the other two. There is no SPA fallback file because the app has no client
 ## Development
 
 `tests/acceptance.test.js` is a jsdom harness that checks the build against the specification —
-130 assertions covering seeding, validation, search, type and category filtering, sorting, deletion,
-the modal, contact masking, export/import, storage edge cases and contrast ratios:
+172 assertions covering seeding, validation, search, type and category filtering, sorting, deletion,
+the modal, contact masking, export/import, the saved profile, the Mine filter, storage edge cases and
+contrast ratios:
 
 ```bash
 npm install jsdom

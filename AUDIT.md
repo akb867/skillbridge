@@ -71,6 +71,23 @@ One real defect was caught by the new tests rather than by reading the code:
 Also closed while adding the chips: **`category` was collected, displayed and searched but could not
 be filtered on** — the only filters were All / Offering / Looking For.
 
+## Saved profile and the Mine filter
+
+Added after a request for a login page. The request was for the friction ("do we have to enter
+personal details every time?") rather than for authentication, so the fix removes the friction
+without pretending to add security: a profile saved to `skillbridge_profile` on first post, which
+collapses the form from six fields to four. The README states plainly that this is not a login.
+
+One real defect was caught by the new tests:
+
+- **The first listing was not owned by its own profile.** The profile was created *after* the record
+  was built, so the first post was stamped `ownerId: null` and fell back to matching on name plus
+  contact. That worked until the profile was renamed — at which point the user's own first listing
+  silently dropped out of the `Mine` filter (the test expected 3 and got 2). The profile id is now
+  allocated before the record is built, so every listing carries it from the first post.
+
+The suite grew from 130 to **172 assertions**.
+
 ## Deployment
 
 Pushed to a public repository and published on GitHub Pages.
