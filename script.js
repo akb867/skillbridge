@@ -24,11 +24,21 @@ const state = {
   listings: [],      // all records
   query: '',         // current search text (lower-cased, trimmed)
   filter: 'all',     // 'all' | 'offering' | 'lookingfor'
+  category: 'all',   // 'all' | one of the CATEGORY values
+  sort: 'newest',    // 'newest' | 'oldest' | 'skill' | 'category'
   pendingDelete: null, // id of the card awaiting delete confirmation
-  lastTrigger: null    // element to restore focus to after modal closes
+  lastTrigger: null,   // element to restore focus to after modal closes
+  modalItem: null,     // listing currently shown in the modal
+  contactRevealed: false // whether the modal's contact details are unmasked
 };
 
 const TYPE_LABEL = { offering: 'Offering', lookingfor: 'Looking For' };
+
+/* Kept in one place so the <select> in index.html and the import validator agree */
+const CATEGORIES = ['Programming', 'Web Development', 'Data & AI', 'Mathematics', 'Science',
+  'Design & Media', 'Music & Arts', 'Languages', 'Academics & Exams', 'Soft Skills', 'Other'];
+
+const EXPORT_VERSION = 1;
 
 /* Element references */
 const el = {
@@ -64,7 +74,16 @@ const el = {
   modalContact: document.getElementById('modalContact'),
   copyContact:  document.getElementById('copyContact'),
   copyNote:     document.getElementById('copyNote'),
-  modalDone:    document.getElementById('modalDone')
+  modalDone:    document.getElementById('modalDone'),
+  chipRow:      document.getElementById('chipRow'),
+  sortSelect:   document.getElementById('sortSelect'),
+  exportBtn:    document.getElementById('exportBtn'),
+  importBtn:    document.getElementById('importBtn'),
+  importFile:   document.getElementById('importFile'),
+  revealContact:document.getElementById('revealContact'),
+  hideContact:  document.getElementById('hideContact'),
+  contactActions:document.getElementById('contactActions'),
+  contactNote:  document.getElementById('contactNote')
 };
 
 /* ---------- 2. Storage layer ---------- */
@@ -216,15 +235,30 @@ function hideBanner() {
 function visibleListings() {
   const terms = state.query.split(/\s+/).filter(Boolean); // AND logic across keywords
 
-  return state.listings
+  const matched = state.listings
     .filter(item => state.filter === 'all' || item.type === state.filter)
+    .filter(item => state.category === 'all' || item.category === state.category)
     .filter(item => {
       if (!terms.length) return true;
       const haystack = [item.skill, item.description, item.category, item.name]
         .filter(Boolean).join(' ').toLowerCase();
       return terms.every(term => haystack.includes(term));
-    })
-    .sort((a, b) => b.createdAt - a.createdAt); // newest first
+    });
+
+  return sortListings(matched, state.sort);
+}
+
+function sortListings(list, mode) {
+  const byText = (a, b, key) =>
+    String(a[key] || '').localeCompare(String(b[key] || ''), undefined, { sensitivity: 'base' });
+
+  switch (mode) {
+    case 'oldest':   return list.slice().sort((a, b) => a.createdAt - b.createdAt);
+    case 'skill':    return list.slice().sort((a, b) => byText(a, b, 'skill'));
+    case 'category': return list.slice().sort((a, b) => byText(a, b, 'category') || byText(a, b, 'skill'));
+    case 'newest':
+    default:         return list.slice().sort((a, b) => b.createdAt - a.createdAt);
+  }
 }
 
 function render(newIdToHighlight) {
@@ -236,12 +270,15 @@ function render(newIdToHighlight) {
   el.resultsMeta.textContent =
     'Showing ' + shown.length + ' of ' + total + (total === 1 ? ' listing' : ' listings');
 
+  /* Category chips reflect the type filter, so counts stay meaningful */
+  renderChips();
+
   /* Grid */
   el.grid.innerHTML = shown.map(cardHTML).join('');
   el.grid.hidden = shown.length === 0;
 
   /* Empty state */
-  const isFiltering = Boolean(state.query) || state.filter !== 'all';
+  const isFiltering = Boolean(state.query) || state.filter !== 'all' || state.category !== 'all';
   el.empty.hidden = shown.length !== 0;
 
   if (shown.length === 0) {
@@ -251,11 +288,9 @@ function render(newIdToHighlight) {
       el.clearFilters.hidden = true;
     } else if (isFiltering) {
       el.emptyTitle.textContent = 'Nothing matches your filters';
-      const isFiltered = state.filter !== 'all';
-      const scope = isFiltered ? TYPE_LABEL[state.filter] : 'listings';
+      const scope = scopeDescription();
       el.emptySub.innerHTML = state.query
-        ? (isFiltered ? 'No <q>' + escapeHTML(scope) + '</q> listing matched ' : 'No listing matched ') +
-          '<q>' + escapeHTML(state.query) + '</q>.'
+        ? 'No ' + escapeHTML(scope) + ' matched <q>' + escapeHTML(state.query) + '</q>.'
         : 'Nothing has been posted under <q>' + escapeHTML(scope) + '</q> yet.';
       el.clearFilters.hidden = false;
     } else {
@@ -278,6 +313,42 @@ function render(newIdToHighlight) {
 
 function cssEscape(value) {
   return window.CSS && CSS.escape ? CSS.escape(value) : String(value).replace(/["\\]/g, '\\$&');
+}
+
+/* "Offering listings in Programming" — used by the empty state */
+function scopeDescription() {
+  const parts = [];
+  if (state.filter !== 'all') parts.push(TYPE_LABEL[state.filter]);
+  if (state.category !== 'all') parts.push(state.category);
+  if (!parts.length) return 'listings';
+  if (parts.length === 1) return parts[0] + ' listings';
+  return parts[0] + ' listings in ' + parts[1];
+}
+
+function renderChips() {
+  const pool = state.listings.filter(item => state.filter === 'all' || item.type === state.filter);
+  const counts = new Map();
+  pool.forEach(item => {
+    const cat = item.category || 'Other';
+    counts.set(cat, (counts.get(cat) || 0) + 1);
+  });
+
+  const ordered = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  /* Keep the active chip on screen even when the type filter has nothing in it */
+  if (state.category !== 'all' && !counts.has(state.category)) ordered.unshift([state.category, 0]);
+
+  const chip = (label, value, count) => {
+    const active = state.category === value;
+    return '<button type="button" class="chip-btn' + (active ? ' is-active' : '') + '"' +
+      ' data-category="' + escapeHTML(value) + '" aria-pressed="' + active + '">' +
+      escapeHTML(label) +
+      (count === null ? '' : '<span class="chip-count">' + count + '</span>') +
+      '</button>';
+  };
+
+  el.chipRow.innerHTML = chip('All categories', 'all', null) +
+    ordered.map(([cat, n]) => chip(cat, cat, n)).join('');
+  el.chipRow.hidden = ordered.length === 0;
 }
 
 function cardHTML(item) {
@@ -410,6 +481,7 @@ el.form.addEventListener('submit', event => {
   /* Keep the current view useful: drop a "Looking For" post while filtering "Offering"
      would otherwise vanish silently. */
   if (state.filter !== 'all' && state.filter !== record.type) state.filter = 'all';
+  if (state.category !== 'all' && state.category !== record.category) state.category = 'all';
   syncFilterButtons();
   state.query = '';
   el.search.value = '';
@@ -480,9 +552,23 @@ function syncFilterButtons() {
   });
 }
 
+/* Category chips (event delegation — the row is re-rendered on every change) */
+el.chipRow.addEventListener('click', event => {
+  const chip = event.target.closest('.chip-btn');
+  if (!chip) return;
+  state.category = chip.dataset.category;
+  render();
+});
+
+el.sortSelect.addEventListener('change', () => {
+  state.sort = el.sortSelect.value;
+  render();
+});
+
 el.clearFilters.addEventListener('click', () => {
   state.query = '';
   state.filter = 'all';
+  state.category = 'all';
   el.search.value = '';
   syncFilterButtons();
   render();
@@ -565,6 +651,131 @@ document.addEventListener('click', event => {
   }
 });
 
+/* ---------- 8b. Export / import (data portability) ---------- */
+function buildExportPayload() {
+  return {
+    app: 'SkillBridge',
+    version: EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    count: state.listings.length,
+    listings: state.listings
+  };
+}
+
+function exportJSON() {
+  const text = JSON.stringify(buildExportPayload(), null, 2);
+  const filename = 'skillbridge-' + new Date().toISOString().slice(0, 10) + '.json';
+
+  /* Prefer a Blob URL; fall back to a data: URL where Blob is unavailable. */
+  let href = 'data:application/json;charset=utf-8,' + encodeURIComponent(text);
+  let objectUrl = null;
+  try {
+    if (typeof Blob === 'function' && typeof URL.createObjectURL === 'function') {
+      objectUrl = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      href = objectUrl;
+    }
+    const link = document.createElement('a');
+    link.href = href;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showBanner('Exported ' + state.listings.length +
+      (state.listings.length === 1 ? ' listing' : ' listings') + ' to ' + filename + '.', 'success');
+  } catch (err) {
+    console.info(text);
+    showBanner('This browser blocked the download — the JSON is printed in the console instead.', 'error');
+  } finally {
+    if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  }
+}
+
+/* Accept anything reasonable, reject anything that is not a listing */
+function normaliseListing(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+
+  const type = entry.type === 'offering' || entry.type === 'lookingfor' ? entry.type : null;
+  const skill = typeof entry.skill === 'string' ? entry.skill.trim().slice(0, 60) : '';
+  const name = typeof entry.name === 'string' ? entry.name.trim().slice(0, 60) : '';
+  if (!type || !skill || !name) return null;
+
+  return {
+    id: typeof entry.id === 'string' && entry.id ? entry.id : newId(),
+    name,
+    type,
+    skill,
+    category: CATEGORIES.includes(entry.category) ? entry.category : 'Other',
+    description: typeof entry.description === 'string' ? entry.description.slice(0, 240) : '',
+    email: typeof entry.email === 'string' ? entry.email.trim() : '',
+    phone: typeof entry.phone === 'string' ? entry.phone.trim() : '',
+    createdAt: Number.isFinite(Number(entry.createdAt)) ? Number(entry.createdAt) : Date.now()
+  };
+}
+
+/* Merge-import: existing listings win, duplicates are skipped, never overwrites */
+function handleImportText(text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    return { ok: false, error: 'That file is not valid JSON.' };
+  }
+
+  const raw = Array.isArray(data)
+    ? data
+    : (data && Array.isArray(data.listings) ? data.listings : null);
+
+  if (!raw) return { ok: false, error: 'No listings array found in that file.' };
+  if (!raw.length) return { ok: false, error: 'That file contains no listings.' };
+
+  const identity = item => (item.name + '|' + item.type + '|' + item.skill).trim().toLowerCase();
+  const seen = new Set(state.listings.map(identity));
+  const knownIds = new Set(state.listings.map(item => item.id));
+
+  let added = 0, skipped = 0;
+  raw.forEach(entry => {
+    const item = normaliseListing(entry);
+    if (!item || knownIds.has(item.id) || seen.has(identity(item))) { skipped++; return; }
+    knownIds.add(item.id);
+    seen.add(identity(item));
+    state.listings.push(item);
+    added++;
+  });
+
+  if (added) saveListings(state.listings);
+  return { ok: true, added, skipped };
+}
+
+el.exportBtn.addEventListener('click', exportJSON);
+el.importBtn.addEventListener('click', () => el.importFile.click());
+
+el.importFile.addEventListener('change', () => {
+  const file = el.importFile.files && el.importFile.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const result = handleImportText(String(reader.result));
+    if (!result.ok) {
+      showBanner(result.error, 'error');
+    } else {
+      /* A fresh board may not match the current filters — show what was imported */
+      if (!addedIsVisible(result)) { state.query = ''; state.filter = 'all'; state.category = 'all'; el.search.value = ''; syncFilterButtons(); }
+      render();
+      showBanner('Imported ' + result.added +
+        (result.added === 1 ? ' listing' : ' listings') +
+        (result.skipped ? ' — skipped ' + result.skipped + ' duplicate or invalid.' : '.'), 'success');
+    }
+    el.importFile.value = '';   // so re-picking the same file still fires change
+  };
+  reader.onerror = () => showBanner('Could not read that file.', 'error');
+  reader.readAsText(file);
+});
+
+function addedIsVisible(result) {
+  return result.added > 0 && visibleListings().length > 0;
+}
+
 /* ---------- 9. Modal ---------- */
 function openModal(item, trigger, revealContact) {
   state.lastTrigger = trigger || null;
@@ -577,22 +788,9 @@ function openModal(item, trigger, revealContact) {
   el.modalName.textContent = item.name;
   el.modalDate.textContent = fullDate(item.createdAt) + ' · ' + relativeTime(item.createdAt);
 
-  /* Contact lines */
-  const parts = [];
-  if (item.email) {
-    parts.push('<span><span class="contact-kind">Email</span>' +
-      '<a href="mailto:' + escapeHTML(item.email) + '">' + escapeHTML(item.email) + '</a></span>');
-  }
-  if (item.phone) {
-    parts.push('<span><span class="contact-kind">Phone</span>' +
-      '<a href="tel:' + escapeHTML(item.phone.replace(/[^\d+]/g, '')) + '">' +
-      escapeHTML(item.phone) + '</a></span>');
-  }
-  el.modalContact.innerHTML = parts.join('') || '<span class="contact-kind">No contact saved</span>';
-
-  el.copyNote.hidden = true;
-  el.copyContact.dataset.value = item.email || item.phone || '';
-  el.copyContact.disabled = !el.copyContact.dataset.value;
+  /* Contact starts masked on every open — see revealContactDetails() */
+  state.modalItem = item;
+  hideContactDetails();
 
   /* <dialog> where supported; manual overlay elsewhere. Either way focus the
      contact block when opened via "Connect". */
@@ -606,11 +804,68 @@ function openModal(item, trigger, revealContact) {
     el.modal.classList.add('is-open-fallback');
   }
 
+  /* "Connect" is an explicit intent to make contact, so it unmasks immediately */
+  if (revealContact) revealContactDetails();
+
   const focusTarget = revealContact
     ? (el.modalContact.querySelector('a') || el.copyContact)
     : el.modalClose;
   if (focusTarget) setTimeout(() => focusTarget.focus(), 30);
 }
+
+/* Masked by default: no mailto:/tel: href exists in the DOM until the user asks for it */
+function hideContactDetails() {
+  state.contactRevealed = false;
+  el.modalContact.innerHTML = '';
+  el.modalContact.hidden = true;
+  el.contactActions.hidden = true;
+  el.contactNote.hidden = false;
+  el.revealContact.hidden = false;
+  el.copyNote.hidden = true;
+  /* The copy button caches the value in a data attribute — that is still the raw
+     contact string sitting in the DOM, so it has to be scrubbed too. */
+  delete el.copyContact.dataset.value;
+  el.copyContact.disabled = true;
+}
+
+function revealContactDetails() {
+  const item = state.modalItem;
+  if (!item) return;
+
+  const parts = [];
+  if (item.email) {
+    parts.push('<span><span class="contact-kind">Email</span>' +
+      '<a href="mailto:' + escapeHTML(item.email) + '">' + escapeHTML(item.email) + '</a></span>');
+  }
+  if (item.phone) {
+    parts.push('<span><span class="contact-kind">Phone</span>' +
+      '<a href="tel:' + escapeHTML(item.phone.replace(/[^\d+]/g, '')) + '">' +
+      escapeHTML(item.phone) + '</a></span>');
+  }
+
+  el.modalContact.innerHTML = parts.join('') ||
+    '<span class="contact-kind">No contact details were saved with this listing.</span>';
+  el.modalContact.hidden = false;
+  el.contactNote.hidden = true;
+  el.revealContact.hidden = true;
+  el.contactActions.hidden = parts.length === 0;
+
+  el.copyNote.hidden = true;
+  el.copyContact.dataset.value = item.email || item.phone || '';
+  el.copyContact.disabled = !el.copyContact.dataset.value;
+  state.contactRevealed = true;
+}
+
+el.revealContact.addEventListener('click', () => {
+  revealContactDetails();
+  const first = el.modalContact.querySelector('a');
+  if (first) first.focus();
+});
+
+el.hideContact.addEventListener('click', () => {
+  hideContactDetails();
+  el.revealContact.focus();
+});
 
 function closeModal() {
   try {
@@ -625,6 +880,9 @@ function closeModal() {
 function restoreFocus() {
   if (state.lastTrigger && document.contains(state.lastTrigger)) state.lastTrigger.focus();
   state.lastTrigger = null;
+  /* Never leave a previous poster's contact details sitting in the DOM */
+  state.modalItem = null;
+  hideContactDetails();
 }
 
 el.modalClose.addEventListener('click', closeModal);
@@ -681,5 +939,7 @@ document.addEventListener('keydown', event => {
   state.listings = loadListings();
   updateCounter();
   syncFilterButtons();
+  el.sortSelect.value = state.sort;
+  hideContactDetails();
   render();
 })();

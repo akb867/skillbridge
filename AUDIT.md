@@ -55,6 +55,22 @@ Checked line-by-line against `skillbridge-prompt.md`. Verified by `tests/accepta
 5. **`tests/`, `package.json`, `node_modules/` are development-only** (jsdom harness) and are not
    part of the three-file deliverable.
 
+## Additions after the initial audit
+
+Four features were added once the build was verified: category filter chips, a sort control,
+export/import JSON, and masked contact details. The suite grew from 82 to **130 assertions**.
+
+One real defect was caught by the new tests rather than by reading the code:
+
+- **Masking leaked through a data attribute.** Hiding the contact block cleared the rendered
+  `mailto:`/`tel:` links but left the raw address in the copy button's `data-value`, so the string
+  was still in the DOM — defeating the point of gating it. `hideContactDetails()` now deletes the
+  attribute and disables the button. Two assertions pin this: the email must be absent from
+  `modal.innerHTML`, and no `data-value=` may appear anywhere in the dialog.
+
+Also closed while adding the chips: **`category` was collected, displayed and searched but could not
+be filtered on** — the only filters were All / Offering / Looking For.
+
 ## Deployment
 
 Pushed to a public repository and published on GitHub Pages.

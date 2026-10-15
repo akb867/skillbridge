@@ -146,7 +146,25 @@
     </div>
   </section>
 
-  <p class="results-meta" id="resultsMeta" aria-live="polite"></p>
+  <!-- Category chips — built by JS from the categories actually present -->
+  <div class="chip-row" id="chipRow" role="group" aria-label="Filter by category"></div>
+
+  <!-- Results count + sort + data portability -->
+  <div class="results-bar">
+    <p class="results-meta" id="resultsMeta" aria-live="polite"></p>
+    <div class="results-tools">
+      <label class="sr-only" for="sortSelect">Sort listings</label>
+      <select id="sortSelect" class="sort-select">
+        <option value="newest" selected>Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="skill">Skill A&ndash;Z</option>
+        <option value="category">Category A&ndash;Z</option>
+      </select>
+      <button type="button" class="btn btn-ghost btn-sm" id="exportBtn">Export JSON</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="importBtn">Import JSON</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden />
+    </div>
+  </div>
 
   <!-- ══════════════ LISTINGS ══════════════ -->
   <section class="grid" id="grid" aria-label="Skill listings"></section>
@@ -188,11 +206,20 @@
       <div><dt>Posted</dt><dd id="modalDate"></dd></div>
     </dl>
 
+    <!-- Contact is gated: no mailto:/tel: link exists in the DOM until revealed,
+         so the raw details are not sitting in the page source for scrapers. -->
     <div class="contact-block">
       <p class="contact-label">Get in touch</p>
-      <div class="contact-lines" id="modalContact"></div>
-      <button type="button" class="btn btn-ghost btn-sm" id="copyContact">Copy contact</button>
-      <span class="copy-note" id="copyNote" hidden>Copied &#10003;</span>
+      <p class="contact-note" id="contactNote">
+        This poster&rsquo;s contact details are hidden until you reveal them.
+      </p>
+      <button type="button" class="btn btn-primary btn-sm" id="revealContact">Reveal contact</button>
+      <div class="contact-lines" id="modalContact" hidden></div>
+      <div class="contact-actions" id="contactActions" hidden>
+        <button type="button" class="btn btn-ghost btn-sm" id="copyContact">Copy contact</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="hideContact">Hide</button>
+        <span class="copy-note" id="copyNote" hidden>Copied &#10003;</span>
+      </div>
     </div>
 
     <button type="button" class="btn btn-primary modal-done" id="modalDone">Done</button>

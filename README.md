@@ -34,13 +34,24 @@ Everything else in this repo is hosting configuration (see below) plus documenta
   and amber throughout so the two buckets are scannable at a glance.
 - **Live search** — filters as you type (150 ms debounce), case-insensitive, matches skill,
   description, category and name; space-separated keywords combine with AND logic.
-- **Type filters** — All / Offering / Looking For toggles that combine with the search term.
+- **Three combinable filters** — type toggles (All / Offering / Looking For) *and* category chips
+  *and* the search term, all ANDed together. Chips are generated from the categories actually present
+  and carry live counts, so they never offer a dead end.
+- **Sorting** — newest, oldest, skill A–Z or category A–Z, preserved across searches.
 - **Interactive cards** — View Details opens a modal with the full description; Connect opens the
   same modal focused on the poster's `mailto:` / `tel:` link, with a copy-to-clipboard button.
 - **Persistence** — every add and delete writes to `localStorage`, so listings survive refreshes and
   browser restarts. Corrupt or blocked storage degrades to an empty board instead of crashing.
 - **Validation** — inline field errors (never `alert()`), a live character counter, and an
   email-*or*-phone rule so every listing is contactable.
+- **Masked contact details** — a poster's email and phone are *not* in the page source. The modal
+  renders a "Reveal contact" button and builds the `mailto:`/`tel:` links only on click, so the
+  details are not sitting in the HTML for scrapers. "Connect" counts as explicit intent and unmasks
+  immediately. Closing the modal scrubs the DOM again, including the copy button's data attribute.
+- **Data portability** — Export downloads the whole board as a dated, self-describing JSON file;
+  Import merges one back in, skipping duplicates and invalid entries and normalising unknown
+  categories to "Other". This is also the workaround for `localStorage` being per-browser: export on
+  one machine, import on another.
 
 ## Reset the demo data
 
@@ -88,8 +99,8 @@ cover the other two. There is no SPA fallback file because the app has no client
 ## Development
 
 `tests/acceptance.test.js` is a jsdom harness that checks the build against the specification —
-82 assertions covering seeding, validation, search, filtering, deletion, the modal, storage edge
-cases and contrast ratios:
+130 assertions covering seeding, validation, search, type and category filtering, sorting, deletion,
+the modal, contact masking, export/import, storage edge cases and contrast ratios:
 
 ```bash
 npm install jsdom
