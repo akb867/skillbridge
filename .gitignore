@@ -15,3 +15,6 @@ skillbridge-deploy.zip
 # OS / editor cruft
 .DS_Store
 npm-debug.log*
+
+# Credentials — never commit
+.secrets/
